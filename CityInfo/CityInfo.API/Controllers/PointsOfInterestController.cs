@@ -16,7 +16,7 @@ namespace CityInfo.API.Controllers
 
         public ActionResult<IEnumerable<PointOfInterestDto>> GetPointSOfInterest(int cityId)
         {
-            throw new Exception("test");
+          
             try
             {
                
