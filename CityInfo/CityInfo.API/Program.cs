@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Add services to the container.
 
 builder.Services.AddControllers(options =>
@@ -14,17 +15,24 @@ builder.Services.AddControllers(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddProblemDetails(options =>
-{
-    options.CustomizeProblemDetails = ctx =>
-    {
-        ctx.ProblemDetails.Extensions.Add("additional info", "additional info example");
-        ctx.ProblemDetails.Extensions.Add("server info", Environment.MachineName);
-    };
-});
+builder.Services.AddProblemDetails();
+
+//builder.Services.AddProblemDetails(options =>
+//{
+//    options.CustomizeProblemDetails = ctx =>
+//    {
+//        ctx.ProblemDetails.Extensions.Add("additional info", "additional info example");
+//        ctx.ProblemDetails.Extensions.Add("server info", Environment.MachineName);
+//    };
+//});
 builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
 var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
