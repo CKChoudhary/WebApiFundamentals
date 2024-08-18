@@ -12,6 +12,8 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+//builder.Logging.ClearProviders();
+//builder.Logging.AddConsole();
 builder.Host.UseSerilog();
 
 // Add services to the container.
@@ -20,34 +22,49 @@ builder.Services.AddControllers(options =>
 {
     options.ReturnHttpNotAcceptable = true;
 }).AddNewtonsoftJson()
-    .AddXmlDataContractSerializerFormatters();
-
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+.AddXmlDataContractSerializerFormatters();
 
 builder.Services.AddProblemDetails();
+//builder.Services.AddProblemDetails(options =>
+//{
+//    options.CustomizeProblemDetails = ctx =>
+//    {
+//        ctx.ProblemDetails.Extensions.Add("additionalInfo",
+//            "Additional info example");
+//        ctx.ProblemDetails.Extensions.Add("server", 
+//            Environment.MachineName);
+//    };
+//});
 
-
+// Learn more about configuring Swagger/OpenAPI at
+// https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
-builder.Services.AddDbContext<CityInfoContext>(dbContextOptions=> dbContextOptions.UseSqlite(builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
-
 
 #if DEBUG
 builder.Services.AddTransient<IMailService, LocalMailService>();
-#else
+#else 
 builder.Services.AddTransient<IMailService, CloudMailService>();
 #endif
 builder.Services.AddSingleton<CitiesDataStore>();
 
+builder.Services.AddDbContext<CityInfoContext>(
+    dbContextOptions => dbContextOptions.UseSqlite(
+        builder.Configuration["ConnectionStrings:CityInfoDBConnectionString"]));
+
+builder.Services.AddScoped<ICityInfoRepository, CityInfoRepository>();
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 var app = builder.Build();
 
+// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler();
 }
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -60,12 +77,9 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.MapControllers();
-
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapControllers();
 });
-
 
 app.Run();
