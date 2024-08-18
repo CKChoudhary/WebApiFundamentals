@@ -10,7 +10,7 @@ namespace CityInfo.API.Controllers
 {
     [ApiController]
     //[Authorize]  [Authorize]
-    [Route("api/cities")]
+    [Route("api/v{version:apiVersion}/cities")]
     [ApiVersion(1)]
     [ApiVersion(2)] // one can have as many as versions
     public class CitiesController : ControllerBase
