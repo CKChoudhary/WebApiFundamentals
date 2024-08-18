@@ -3,13 +3,16 @@ using CityInfo.API.Models;
 using CityInfo.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CityInfo.API.Controllers
 {
     [ApiController]
-    [Authorize]  [Authorize]
+    //[Authorize]  [Authorize]
     [Route("api/cities")]
+    [ApiVersion(1)]
+    [ApiVersion(2)] // one can have as many as versions
     public class CitiesController : ControllerBase
     {
         private readonly ICityInfoRepository _cityInfoRepository;

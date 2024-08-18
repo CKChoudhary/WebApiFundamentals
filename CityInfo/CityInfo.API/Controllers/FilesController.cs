@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +21,10 @@ namespace CityInfo.API.Controllers
                                                     nameof(fileExtensionContentTypeProvider));
         }
 
+
+
         [HttpGet("{fileId}")]
+        [ApiVersion(0.1, Deprecated = true)]
         public ActionResult GetFile(string fileId)
         {
 
