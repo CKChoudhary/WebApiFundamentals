@@ -400,3 +400,4 @@ FodyWeavers.xsd
 # SQLite temporary files 
 *.db-shm
 *.db-wal
+/CityInfo/CityInfo.API/CityInfo.db
