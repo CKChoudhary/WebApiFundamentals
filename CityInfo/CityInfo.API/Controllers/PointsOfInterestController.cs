@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace CityInfo.API.Controllers
 {
     [Route("api/v{version:apiVersion}/cities/{cityId}/pointsofinterest")]
-    //[Authorize(Policy = "MustBeFromAntwerp")]
-    [ApiController]
+    [Authorize(Policy = "MustBeFromAntwerp")]
     [ApiVersion(2)]
+    [ApiController]
     public class PointsOfInterestController : ControllerBase
     {
         private readonly ILogger<PointsOfInterestController> _logger;
@@ -38,12 +38,6 @@ namespace CityInfo.API.Controllers
         public async Task<ActionResult<IEnumerable<PointOfInterestDto>>> GetPointsOfInterest(
             int cityId)
         {
-            var cityName = User.Claims.FirstOrDefault(c => c.Type == "city")?.Value;
-            if (!await _cityInfoRepository.CityNameMatchesCityId(cityName, cityId))
-            {
-                return Forbid();
-            }
-
             if (!await _cityInfoRepository.CityExistsAsync(cityId))
             {
                 _logger.LogInformation(
@@ -129,7 +123,7 @@ namespace CityInfo.API.Controllers
             return NoContent();
         }
 
-	[HttpPatch("{pointofinterestid}")]
+        [HttpPatch("{pointofinterestid}")]
         public async Task<ActionResult> PartiallyUpdatePointOfInterest(
            int cityId, int pointOfInterestId,
            JsonPatchDocument<PointOfInterestForUpdateDto> patchDocument)

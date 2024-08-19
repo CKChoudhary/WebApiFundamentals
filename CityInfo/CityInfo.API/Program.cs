@@ -1,11 +1,15 @@
 using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using CityInfo.API;
 using CityInfo.API.DbContexts;
 using CityInfo.API.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
+using System.Reflection;
+using System.Text;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
@@ -26,14 +30,6 @@ builder.Services.AddControllers(options =>
 }).AddNewtonsoftJson()
 .AddXmlDataContractSerializerFormatters();
 
-builder.Services.AddApiVersioning(setupAction =>
-{
-    setupAction.ReportApiVersions = true;
-    setupAction.AssumeDefaultVersionWhenUnspecified = true;
-    setupAction.DefaultApiVersion = new ApiVersion(1, 0);
-
-}).AddMvc();
-
 builder.Services.AddProblemDetails();
 //builder.Services.AddProblemDetails(options =>
 //{
@@ -46,10 +42,6 @@ builder.Services.AddProblemDetails();
 //    };
 //});
 
-// Learn more about configuring Swagger/OpenAPI at
-// https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<FileExtensionContentTypeProvider>();
 
 #if DEBUG
@@ -69,18 +61,18 @@ builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new()
         {
-            options.TokenValidationParameters = new()
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["Authentication:Issuer"],
-                ValidAudience = builder.Configuration["Authentication:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Convert.FromBase64String(builder.Configuration["Authentication:SecretForKey"]))
-            };
-        }
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Authentication:Issuer"],
+            ValidAudience = builder.Configuration["Authentication:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+               Convert.FromBase64String(builder.Configuration["Authentication:SecretForKey"]))
+        };
+    }
     );
 
 builder.Services.AddAuthorization(options =>
@@ -89,7 +81,65 @@ builder.Services.AddAuthorization(options =>
     {
         policy.RequireAuthenticatedUser();
         policy.RequireClaim("city", "Antwerp");
+    });
+});
 
+builder.Services.AddApiVersioning(setupAction =>
+{
+    setupAction.ReportApiVersions = true;
+    setupAction.AssumeDefaultVersionWhenUnspecified = true;
+    setupAction.DefaultApiVersion = new ApiVersion(1, 0);
+}).AddMvc()
+.AddApiExplorer(setupAction =>
+{
+    setupAction.SubstituteApiVersionInUrl = true;
+});
+
+// Learn more about configuring Swagger/OpenAPI at
+// https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+
+var apiVersionDescriptionProvider = builder.Services.BuildServiceProvider()
+  .GetRequiredService<IApiVersionDescriptionProvider>();
+
+builder.Services.AddSwaggerGen(setupAction =>
+{
+    foreach (var description in
+        apiVersionDescriptionProvider.ApiVersionDescriptions)
+    {
+        setupAction.SwaggerDoc(
+            $"{description.GroupName}",
+            new()
+            {
+                Title = "City Info API",
+                Version = description.ApiVersion.ToString(),
+                Description = "Through this API you can access cities and their points of interest."
+            });
+    }
+
+    var xmlCommentsFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlCommentsFullPath = Path.Combine(AppContext.BaseDirectory, xmlCommentsFile);
+
+    setupAction.IncludeXmlComments(xmlCommentsFullPath);
+
+    setupAction.AddSecurityDefinition("CityInfoApiBearerAuth", new()
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        Description = "Input a valid token to access this API"
+    });
+
+    setupAction.AddSecurityRequirement(new()
+    {
+        {
+            new ()
+            {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "CityInfoApiBearerAuth" }
+            },
+            new List<string>()
+        }
     });
 });
 
@@ -104,12 +154,22 @@ if (!app.Environment.IsDevelopment())
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(setupAction =>
+    {
+        var descriptions = app.DescribeApiVersions();
+        foreach (var description in descriptions)
+        {
+            setupAction.SwaggerEndpoint(
+                $"/swagger/{description.GroupName}/swagger.json",
+                description.GroupName.ToUpperInvariant());
+        }
+    });
 }
 
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
 app.UseAuthentication();
 
 app.UseAuthorization();

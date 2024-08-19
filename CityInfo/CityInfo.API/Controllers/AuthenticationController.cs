@@ -51,7 +51,8 @@ namespace CityInfo.API.Controllers
         }
 
         [HttpPost("authenticate")]
-        public ActionResult<string> Authenticate(AuthenticationRequestBody authenticationRequestBody)
+        public ActionResult<string> Authenticate(
+            AuthenticationRequestBody authenticationRequestBody)
         {  
             // Step 1: validate the username/password
             var user = ValidateUserCredentials(
@@ -64,8 +65,10 @@ namespace CityInfo.API.Controllers
             }
 
             // Step 2: create a token
-            var securityKey = new SymmetricSecurityKey(Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
-            var signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var securityKey = new SymmetricSecurityKey(
+                Convert.FromBase64String(_configuration["Authentication:SecretForKey"]));
+            var signingCredentials = new SigningCredentials(
+                securityKey, SecurityAlgorithms.HmacSha256);
              
             var claimsForToken = new List<Claim>();
             claimsForToken.Add(new Claim("sub", user.UserId.ToString()));
